@@ -9,6 +9,18 @@
   padding: 20px;
   flex: 1;
   overflow: hidden;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: var(--m);
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
 }
 
 .status {

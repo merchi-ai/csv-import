@@ -74,3 +74,34 @@ Importer.args = {
     },
   },
 };
+
+export const WithCustomStep = Template.bind({});
+WithCustomStep.args = {
+  ...Importer.args,
+  customStep: {
+    name: "Review & Confirm",
+    component: (
+      <div style={{ padding: "20px", textAlign: "center" }}>
+        <h3>Review Your Import</h3>
+        <div style={{ margin: "20px 0" }}>
+          <p>Please review the following information before completing the import:</p>
+          <ul style={{ textAlign: "left", maxWidth: "400px", margin: "0 auto" }}>
+            <li>Total records to import: 150</li>
+            <li>Required fields present: Yes</li>
+            <li>Data format valid: Yes</li>
+          </ul>
+        </div>
+        <div style={{ 
+          backgroundColor: "#f5f5f5", 
+          padding: "15px", 
+          borderRadius: "8px",
+          marginTop: "20px"
+        }}>
+          <p style={{ margin: "0", color: "#666" }}>
+            Click "Complete" to proceed with the import
+          </p>
+        </div>
+      </div>
+    ),
+  },
+};

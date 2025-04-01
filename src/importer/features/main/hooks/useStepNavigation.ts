@@ -3,21 +3,25 @@ import { useTranslation } from "react-i18next";
 import useStepper from "../../../components/Stepper/hooks/useStepper";
 import { Steps } from "../types";
 import useMutableLocalStorage from "./useMutableLocalStorage";
+import { CSVImporterProps } from "../../../../types";
 
 export const StepEnum = {
   Upload: 0,
   RowSelection: 1,
   MapColumns: 2,
-  Complete: 3,
+  Custom: 3,
+  Complete: 4,
 };
 
-const calculateNextStep = (nextStep: number, skipHeader: boolean) => {
+const calculateNextStep = (nextStep: number, skipHeader: boolean, hasCustomStep: boolean) => {
   if (skipHeader) {
     switch (nextStep) {
       case StepEnum.Upload:
       case StepEnum.RowSelection:
         return StepEnum.MapColumns;
       case StepEnum.MapColumns:
+        return hasCustomStep ? StepEnum.Custom : StepEnum.Complete;
+      case StepEnum.Custom:
         return StepEnum.Complete;
       default:
         return nextStep;
@@ -26,17 +30,23 @@ const calculateNextStep = (nextStep: number, skipHeader: boolean) => {
   return nextStep;
 };
 
-const getStepConfig = (skipHeader: boolean) => {
-  return [
+const getStepConfig = (skipHeader: boolean, customStep?: CSVImporterProps['customStep']) => {
+  const steps = [
     { label: "Upload", id: Steps.Upload },
     { label: "Select Header", id: Steps.RowSelection, disabled: skipHeader },
     { label: "Map Columns", id: Steps.MapColumns },
   ];
+
+  if (customStep) {
+    steps.push({ label: customStep.name, id: Steps.Custom });
+  }
+
+  return steps;
 };
 
-function useStepNavigation(initialStep: number, skipHeader: boolean) {
+function useStepNavigation(initialStep: number, skipHeader: boolean, customStep?: CSVImporterProps['customStep']) {
   const [t] = useTranslation();
-  const translatedSteps = getStepConfig(skipHeader).map((step) => ({
+  const translatedSteps = getStepConfig(skipHeader, customStep).map((step) => ({
     ...step,
     label: t(step.label),
   }));
@@ -51,7 +61,7 @@ function useStepNavigation(initialStep: number, skipHeader: boolean) {
 
   const goNext = (nextStep = 0) => {
     nextStep = nextStep || currentStep + 1 || 0;
-    const calculatedStep = calculateNextStep(nextStep, skipHeader);
+    const calculatedStep = calculateNextStep(nextStep, skipHeader, !!customStep);
     setStep(calculatedStep);
   };
 

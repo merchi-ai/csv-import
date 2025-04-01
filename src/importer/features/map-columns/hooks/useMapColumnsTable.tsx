@@ -58,7 +58,7 @@ export default function useMapColumnsTable(
 
       acc[uc.index] = {
         key: similarTemplateColumn?.key || "",
-        include: !!similarTemplateColumn?.key,
+        include: true,
         selected: !!similarTemplateColumn?.key,
       };
       return acc;
@@ -76,7 +76,7 @@ export default function useMapColumnsTable(
 
   const handleTemplateChange = (uploadColumnIndex: number, key: string) => {
     setValues((prev) => {
-      const templatesFields = { ...prev, [uploadColumnIndex]: { ...prev[uploadColumnIndex], key: key, include: !!key, selected: !!key } };
+      const templatesFields = { ...prev, [uploadColumnIndex]: { ...prev[uploadColumnIndex], key: key, selected: !!key } };
       const templateFieldsObj = Object.values(templatesFields).map(({ key, selected }) => ({ key, selected }));
       setSelectedValues(templateFieldsObj);
       return templatesFields;
@@ -84,7 +84,7 @@ export default function useMapColumnsTable(
   };
 
   const handleUseChange = (id: number, value: boolean) => {
-    setValues((prev) => ({ ...prev, [id]: { ...prev[id], include: !!prev[id].key && value } }));
+    setValues((prev) => ({ ...prev, [id]: { ...prev[id], include: value } }));
   };
 
   const yourFileColumn = t("Your File Column");
@@ -131,7 +131,7 @@ export default function useMapColumnsTable(
           content: (
             <Checkbox
               checked={suggestion.include}
-              disabled={!suggestion.key || isLoading}
+              disabled={isLoading}
               onChange={(e) => handleUseChange(index, e.target.checked)}
             />
           ),

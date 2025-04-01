@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { IconButton } from "@chakra-ui/button";
+import { IconButton, Button } from "@chakra-ui/button";
 import Errors from "../../components/Errors";
 import Stepper from "../../components/Stepper";
 import { CSVImporterProps } from "../../../types";
@@ -29,6 +29,7 @@ export default function Main(props: CSVImporterProps) {
     customStyles,
     showDownloadTemplateButton,
     skipHeaderRowSelection,
+    customStep,
   } = props;
   const skipHeader = skipHeaderRowSelection ?? false;
 
@@ -38,7 +39,7 @@ export default function Main(props: CSVImporterProps) {
   useCustomStyles(parseObjectOrStringJSON("customStyles", customStyles));
 
   // Stepper handler
-  const { currentStep, setStep, goNext, goBack, stepper, setStorageStep } = useStepNavigation(StepEnum.Upload, skipHeader);
+  const { currentStep, setStep, goNext, goBack, stepper, setStorageStep } = useStepNavigation(StepEnum.Upload, skipHeader, customStep);
 
   // Error handling
   const [initializationError, setInitializationError] = useState<string | null>(null);
@@ -66,6 +67,9 @@ export default function Main(props: CSVImporterProps) {
     columns: [],
   });
 
+  // Store the processed data for use in custom step and complete
+  const [processedData, setProcessedData] = useState<any>(null);
+
   useEffect(() => {
     const [parsedTemplate, parsedTemplateError] = convertRawTemplate(template);
     if (parsedTemplateError) {
@@ -89,6 +93,8 @@ export default function Main(props: CSVImporterProps) {
     setSelectedHeaderRow(0);
     setColumnMapping({});
     setDataError(null);
+    setProcessedData(null);
+    setIsSubmitting(false);
     setStep(StepEnum.Upload);
   };
 
@@ -214,19 +220,19 @@ export default function Main(props: CSVImporterProps) {
                   index: row.index - startIndex,
                   values: {},
                 };
-                // Add original column values only if they weren't mapped
+                // Add all column values based on include flag
                 row.values.forEach((value: string, valueIndex: number) => {
                   const mapping = columnMapping[valueIndex];
-                  if (!mapping || !mapping.include) {
-                    const columnName = data.rows[headerRowIndex]?.values[valueIndex] || `column_${valueIndex}`;
-                    resultingRow.values[columnName] = value;
-                  }
-                });
-                // Add mapped values with template keys
-                row.values.forEach((value: string, valueIndex: number) => {
-                  const mapping = columnMapping[valueIndex];
-                  if (mapping && mapping.include) {
-                    resultingRow.values[mapping.key] = value;
+                  const columnName = data.rows[headerRowIndex]?.values[valueIndex] || `column_${valueIndex}`;
+                  
+                  if (mapping?.include) {
+                    if (mapping.key) {
+                      // If mapped to a template column, use the template key
+                      resultingRow.values[mapping.key] = value;
+                    } else {
+                      // If not mapped but included, use the original column name
+                      resultingRow.values[columnName] = value;
+                    }
                   }
                 });
                 mappedRows.push(resultingRow);
@@ -238,8 +244,8 @@ export default function Main(props: CSVImporterProps) {
               const allCSVColumns = data.rows[headerRowIndex]?.values.map((columnName: string, index: number) => ({
                 key: `column_${index}`,
                 name: columnName,
-                mapped: columnMapping[index]?.include ? true : false,
-                mappedTo: columnMapping[index]?.include ? columnMapping[index].key : null
+                mapped: columnMapping[index]?.key ? true : false,
+                mappedTo: columnMapping[index]?.key || null
               })) || [];
 
               const onCompleteData = {
@@ -251,17 +257,52 @@ export default function Main(props: CSVImporterProps) {
                 rows: mappedRows,
               };
 
-              onComplete && onComplete(onCompleteData);
+              setProcessedData(onCompleteData);
 
-              setIsSubmitting(false);
-              goNext();
+              if (customStep) {
+                goNext();
+              } else {
+                onComplete && onComplete(onCompleteData);
+                goNext();
+              }
             }}
             isSubmitting={isSubmitting}
             onCancel={skipHeader ? reload : () => goBack(StepEnum.RowSelection)}
           />
         );
+      case StepEnum.Custom:
+        return (
+          <div className={style.content}>
+            <form>
+              {customStep?.component}
+              <div className={style.actions}>
+                <Button type="button" colorScheme="secondary" onClick={() => {
+                  setIsSubmitting(false);
+                  goBack();
+                }}>
+                  {t("Back")}
+                </Button>
+                <Button
+                  colorScheme="primary"
+                  onClick={() => {
+                    onComplete && onComplete(processedData);
+                    goNext();
+                  }}
+                >
+                  {t("Continue")}
+                </Button>
+              </div>
+            </form>
+          </div>
+        );
       case StepEnum.Complete:
-        return <Complete reload={reload} close={requestClose} isModal={isModal} />;
+        return (
+          <Complete
+            reload={reload}
+            close={requestClose}
+            isModal={isModal}
+          />
+        );
       default:
         return null;
     }

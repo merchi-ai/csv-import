@@ -1,5 +1,5 @@
 import { Resource } from "i18next";
-import { HTMLAttributes } from "react";
+import { HTMLAttributes, ReactNode } from "react";
 
 type ModalParams = {
   isModal?: boolean;
@@ -8,7 +8,7 @@ type ModalParams = {
   modalCloseOnOutsideClick?: boolean;
 };
 
-export type CSVImporterProps = (HTMLAttributes<HTMLDialogElement> & HTMLAttributes<HTMLDivElement>) & {
+type CustomProps = {
   template?: Record<string, unknown> | string;
   darkMode?: boolean;
   primaryColor?: string;
@@ -20,4 +20,10 @@ export type CSVImporterProps = (HTMLAttributes<HTMLDialogElement> & HTMLAttribut
   skipHeaderRowSelection?: boolean;
   language?: string;
   customTranslations?: Resource;
-} & ModalParams;
+  customStep?: {
+    component: ReactNode;
+    name: string;
+  };
+};
+
+export type CSVImporterProps = CustomProps & ModalParams & HTMLAttributes<HTMLDialogElement>;

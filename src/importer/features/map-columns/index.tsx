@@ -64,7 +64,7 @@ export default function MapColumns({
       return;
     }
 
-    onSuccess(columns);
+    onSuccess(formValues);
   };
 
   return (
