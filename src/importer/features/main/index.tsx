@@ -206,6 +206,7 @@ export default function Main(props: CSVImporterProps) {
                 values: Record<string, number | string>;
               };
               const startIndex = (selectedHeaderRow || 0) + 1;
+              const headerRowIndex = selectedHeaderRow ?? 0;
 
               const mappedRows: MappedRow[] = [];
               data.rows.slice(startIndex).forEach((row: FileRow) => {
@@ -213,6 +214,15 @@ export default function Main(props: CSVImporterProps) {
                   index: row.index - startIndex,
                   values: {},
                 };
+                // Add original column values only if they weren't mapped
+                row.values.forEach((value: string, valueIndex: number) => {
+                  const mapping = columnMapping[valueIndex];
+                  if (!mapping || !mapping.include) {
+                    const columnName = data.rows[headerRowIndex]?.values[valueIndex] || `column_${valueIndex}`;
+                    resultingRow.values[columnName] = value;
+                  }
+                });
+                // Add mapped values with template keys
                 row.values.forEach((value: string, valueIndex: number) => {
                   const mapping = columnMapping[valueIndex];
                   if (mapping && mapping.include) {
@@ -224,12 +234,20 @@ export default function Main(props: CSVImporterProps) {
 
               const includedColumns = Object.values(columnMapping).filter(({ include }) => include);
 
+              // Get all CSV columns from the header row
+              const allCSVColumns = data.rows[headerRowIndex]?.values.map((columnName: string, index: number) => ({
+                key: `column_${index}`,
+                name: columnName,
+                mapped: columnMapping[index]?.include ? true : false,
+                mappedTo: columnMapping[index]?.include ? columnMapping[index].key : null
+              })) || [];
+
               const onCompleteData = {
                 num_rows: mappedRows.length,
-                num_columns: includedColumns.length,
+                num_columns: allCSVColumns.length,
                 error: null,
-                // TODO (client-sdk): Either remove "name" or change it to the be the name of the original upload column
-                columns: includedColumns.map(({ key }) => ({ key, name: key })),
+                columns: allCSVColumns,
+                mapped_columns: includedColumns.map(({ key }) => ({ key, name: key })),
                 rows: mappedRows,
               };
 
